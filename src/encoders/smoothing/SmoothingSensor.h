@@ -42,6 +42,8 @@ class SmoothingSensor : public Sensor
 
     Sensor& _wrapped;
     const FOCMotor& _motor;
+    int inv_pp_for = 0;    //!< pole pairs inv_pp was computed for
+    float inv_pp = 1.0f;   //!< 1 / pole pairs, so that update() does not divide (slow without FPU)
 };
 
 #endif
