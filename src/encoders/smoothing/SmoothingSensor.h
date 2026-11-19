@@ -42,7 +42,6 @@ class SmoothingSensor : public Sensor
 
     Sensor& _wrapped;
     const FOCMotor& _motor;
-    float inv_pole_pairs;  //!< 1 / motor pole pairs, computed in the constructor
 };
 
 #endif
