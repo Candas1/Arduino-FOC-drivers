@@ -4,11 +4,13 @@
 #include "sensors/HallSensor.h"
 
 
-SmoothingSensor::SmoothingSensor(Sensor& s, const FOCMotor& m) : _wrapped(s), _motor(m)
+// 1/pole_pairs computed once here, so that update() multiplies instead of dividing (slow without FPU).
+// The motor is constructed before this sensor, which takes it as parameter.
+SmoothingSensor::SmoothingSensor(Sensor& s, const FOCMotor& m) : _wrapped(s), _motor(m), inv_pole_pairs(1.0f / m.pole_pairs)
 {
 }
 
-SmoothingSensor::SmoothingSensor(HallSensor& s, const FOCMotor& m) : _wrapped(s), _motor(m) {
+SmoothingSensor::SmoothingSensor(HallSensor& s, const FOCMotor& m) : _wrapped(s), _motor(m), inv_pole_pairs(1.0f / m.pole_pairs) {
   phase_correction = -_PI_6;
 }
 
@@ -27,15 +29,13 @@ void SmoothingSensor::update() {
   // Perform angle prediction, using low-pass filtered velocity. But don't advance more than
   // pi/3 (equivalent to one step of block commutation) from the last true angle reading.
   float dt = (_micros() - angle_prev_ts) * 1e-6f;
-  // 1/pole_pairs computed once (divisions are slow without FPU)
-  if (_motor.pole_pairs != inv_pp_for) { inv_pp_for = _motor.pole_pairs; inv_pp = 1.0f / _motor.pole_pairs; }
-  float max_step = _PI_3 * inv_pp;
+  float max_step = _PI_3 * inv_pole_pairs;
   angle_prev += _motor.sensor_direction * _constrain(_motor.shaft_velocity * dt, -max_step, max_step);
 
   // Apply phase correction if needed
   if (phase_correction != 0) {
-    if (_motor.shaft_velocity < -0.001f) angle_prev -= _motor.sensor_direction * phase_correction * inv_pp;
-    else if (_motor.shaft_velocity > 0.001f) angle_prev += _motor.sensor_direction * phase_correction * inv_pp;
+    if (_motor.shaft_velocity < -0.001f) angle_prev -= _motor.sensor_direction * phase_correction * inv_pole_pairs;
+    else if (_motor.shaft_velocity > 0.001f) angle_prev += _motor.sensor_direction * phase_correction * inv_pole_pairs;
   }
 
   // Handle wraparound of the projected angle
