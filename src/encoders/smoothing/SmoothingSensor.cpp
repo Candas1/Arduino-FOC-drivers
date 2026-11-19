@@ -27,10 +27,8 @@ void SmoothingSensor::update() {
   // Perform angle prediction, using low-pass filtered velocity. But don't advance more than
   // pi/3 (equivalent to one step of block commutation) from the last true angle reading.
   float dt = (_micros() - angle_prev_ts) * 1e-6f;
-  // one division instead of four (slow without FPU), pole_pairs read at every call
-  float inv_pole_pairs = 1.0f / _motor.pole_pairs;
-  float max_step = _PI_3 * inv_pole_pairs;
-  angle_prev += _motor.sensor_direction * _constrain(_motor.shaft_velocity * dt, -max_step, max_step);
+  float inv_pole_pairs = 1.0f / _motor.pole_pairs;  // one division instead of four (slow without FPU)
+  angle_prev += _motor.sensor_direction * _constrain(_motor.shaft_velocity * dt, -_PI_3 * inv_pole_pairs, _PI_3 * inv_pole_pairs);
 
   // Apply phase correction if needed
   if (phase_correction != 0) {
